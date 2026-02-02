@@ -80,7 +80,7 @@ ferris-fetch --theme ocean --minimal
 ## 📋 Example Output
 
 ```
-        _~^~^~_          cja@NORMAL-PC
+        _~^~^~_          shit@NORMAL-PC
     \) /  o o  \ (/      ─────────────────
       '_   -   _'        OS: Windows 11 22H2
       / '-----' \        Kernel: 22631
