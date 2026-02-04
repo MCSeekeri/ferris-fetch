@@ -3,12 +3,10 @@ name: CI
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ["v*"]
   pull_request:
     branches: [main]
-
-env:
-  CARGO_TERM_COLOR: always
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,49 +14,56 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+            system: x86_64-linux
             artifact: ferris-fetch-linux-x86_64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact: ferris-fetch-windows-x86_64.exe
+          - os: ubuntu-latest-arm64
+            system: aarch64-linux
+            artifact: ferris-fetch-linux-aarch64
           - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact: ferris-fetch-macos-x86_64
-          - os: macos-latest
-            target: aarch64-apple-darwin
+            system: aarch64-darwin
             artifact: ferris-fetch-macos-aarch64
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-action@stable
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@main
         with:
-          targets: ${{ matrix.target }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
-
-      - name: Rename binary (Unix)
-        if: runner.os != 'Windows'
+      - name: Build with Nix
         run: |
-          cp target/${{ matrix.target }}/release/ferris-fetch ${{ matrix.artifact }}
-
-      - name: Rename binary (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          cp target/${{ matrix.target }}/release/ferris-fetch.exe ${{ matrix.artifact }}
+          nix build .#default
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact }}
-          path: ${{ matrix.artifact }}
+          path: result/bin/ferris-fetch
+          retention-days: 1
+
+  build-windows:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Windows binary with Nix cross-compilation
+        run: |
+          nix build .#ferris-fetch-windows
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ferris-fetch-windows-x86_64
+          path: result/bin/ferris-fetch.exe
+          retention-days: 1
 
   release:
-    needs: build
+    needs: [build, build-windows]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
@@ -66,12 +71,12 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: artifacts
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**/*
           generate_release_notes: true
