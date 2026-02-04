@@ -113,11 +113,7 @@ const FERRIS_ART: &[&str] = &[
 ];
 
 /// Small Ferris for minimal mode
-const FERRIS_SMALL: &[&str] = &[
-    r"   _~^~_   ",
-    r" \)/o o\(/ ",
-    r"  '- ^ -'  ",
-];
+const FERRIS_SMALL: &[&str] = &[r"   _~^~_   ", r" \)/o o\(/ ", r"  '- ^ -'  "];
 
 /// System information collector
 struct SysInfo {
@@ -156,12 +152,7 @@ impl SysInfo {
         // Get shell
         let shell = env::var("SHELL")
             .or_else(|_| env::var("COMSPEC"))
-            .map(|s| {
-                s.split(['/', '\\'])
-                    .last()
-                    .unwrap_or("Unknown")
-                    .to_string()
-            })
+            .map(|s| s.split(['/', '\\']).last().unwrap_or("Unknown").to_string())
             .unwrap_or_else(|_| "Unknown".to_string());
 
         // Get CPU info
@@ -336,7 +327,13 @@ fn print_info(info: &SysInfo, args: &Args, theme: &Theme) {
             "{} / {} {}",
             format_bytes(info.memory_used),
             format_bytes(info.memory_total),
-            progress_bar(info.memory_used, info.memory_total, 10, theme, args.no_color)
+            progress_bar(
+                info.memory_used,
+                info.memory_total,
+                10,
+                theme,
+                args.no_color
+            )
         );
         lines.push((label_color("Memory"), mem_info));
     }
