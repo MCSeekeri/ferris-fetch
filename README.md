@@ -2,7 +2,7 @@
 
 [![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![GitHub stars](https://img.shields.io/github/stars/NORMAL-EX/ferris-fetch?style=for-the-badge)](https://github.com/NORMAL-EX/ferris-fetch/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/MCSeekeri/ferris-fetch?style=for-the-badge)](https://github.com/MCSeekeri/ferris-fetch/stargazers)
 
 > A fast and cute system information tool written in Rust, featuring Ferris the crab! 🦀
 
@@ -25,7 +25,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/NORMAL-EX/ferris-fetch.git
+git clone https://github.com/MCSeekeri/ferris-fetch.git
 cd ferris-fetch
 
 # Build and install
@@ -40,7 +40,7 @@ cargo install ferris-fetch
 
 ### Pre-built Binaries
 
-Download the latest release from the [Releases](https://github.com/NORMAL-EX/ferris-fetch/releases) page.
+Download the latest release from the [Releases](https://github.com/MCSeekeri/ferris-fetch/releases) page.
 
 ## 🚀 Usage
 
@@ -80,7 +80,7 @@ ferris-fetch --theme ocean --minimal
 ## 📋 Example Output
 
 ```
-        _~^~^~_          shit@NORMAL-PC
+        _~^~^~_          user@hostname
     \) /  o o  \ (/      ─────────────────
       '_   -   _'        OS: Windows 11 22H2
       / '-----' \        Kernel: 22631
@@ -135,10 +135,10 @@ Contributions are welcome! Feel free to:
 
 ## 📊 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=NORMAL-EX/ferris-fetch&type=Date)](https://star-history.com/#NORMAL-EX/ferris-fetch&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=MCSeekeri/ferris-fetch&type=Date)](https://star-history.com/#MCSeekeri/ferris-fetch&Date)
 
 ---
 
 <p align="center">
-  Made with 🦀 by <a href="https://github.com/NORMAL-EX">NORMAL-EX</a>
+  Made with 🦀 by <a href="https://github.com/MCSeekeri">MCSeekeri</a>
 </p>
