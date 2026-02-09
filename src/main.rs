@@ -1,26 +1,14 @@
-//! # ferris-fetch 🦀
-//!
-//! A fast and cute system information tool written in Rust, featuring Ferris the crab!
-//!
-//! ## Features
-//! - Pure Rust implementation, blazingly fast startup
-//! - Cross-platform support (Windows, Linux, macOS)
-//! - Customizable color themes
-//! - ASCII art Ferris mascot
-//!
-//! ## Usage
-//! ```bash
-//! ferris-fetch           # Default display
-//! ferris-fetch --theme ocean   # Use ocean theme
-//! ferris-fetch --no-color      # Disable colors
-//! ```
-
 use clap::Parser;
 use colored::*;
+use crossterm::cursor::{MoveDown, MoveToColumn, MoveUp, RestorePosition, SavePosition};
+use crossterm::execute;
+use image::{DynamicImage, RgbaImage};
+use resvg::{render, tiny_skia, usvg};
 use std::env;
+use std::io::{self, Write};
 use sysinfo::System;
+use tiny_skia::{Pixmap, Transform};
 
-/// Ferris-fetch: A cute system information tool 🦀
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -115,6 +103,10 @@ const FERRIS_ART: &[&str] = &[
 /// Small Ferris for minimal mode
 const FERRIS_SMALL: &[&str] = &[r"   _~^~_   ", r" \)/o o\(/ ", r"  '- ^ -'  "];
 
+const FERRIS_SVG: &[u8] = include_bytes!("rustacean-flat-happy.svg");
+const MIN_IMAGE_WIDTH: u16 = 10;
+const MAX_IMAGE_WIDTH: u16 = 40;
+
 /// System information collector
 struct SysInfo {
     hostname: String,
@@ -152,7 +144,12 @@ impl SysInfo {
         // Get shell
         let shell = env::var("SHELL")
             .or_else(|_| env::var("COMSPEC"))
-            .map(|s| s.split(['/', '\\']).last().unwrap_or("Unknown").to_string())
+            .map(|s| {
+                s.split(['/', '\\'])
+                    .next_back()
+                    .unwrap_or("Unknown")
+                    .to_string()
+            })
             .unwrap_or_else(|_| "Unknown".to_string());
 
         // Get CPU info
@@ -177,7 +174,7 @@ impl SysInfo {
 
         SysInfo {
             hostname: System::host_name().unwrap_or_else(|| "Unknown".to_string()),
-            username: whoami::username(),
+            username: whoami::username().unwrap_or_else(|_| "Unknown".to_string()),
             os,
             kernel,
             uptime,
@@ -254,17 +251,112 @@ fn progress_bar(used: u64, total: u64, width: usize, theme: &Theme, no_color: bo
     }
 }
 
+fn terminal_size() -> (u16, u16) {
+    crossterm::terminal::size().unwrap_or((80, 24))
+}
+
+fn render_ferris() -> Result<DynamicImage, String> {
+    let opt = usvg::Options::default();
+
+    let tree = usvg::Tree::from_data(FERRIS_SVG, &opt).map_err(|err| err.to_string())?;
+    let pixmap_size = tree.size().to_int_size();
+    let mut pixmap = Pixmap::new(pixmap_size.width(), pixmap_size.height())
+        .ok_or_else(|| "Failed to create pixmap".to_string())?;
+
+    render(&tree, Transform::default(), &mut pixmap.as_mut());
+    let image = pixmap_to_rgba(&pixmap)?;
+    Ok(DynamicImage::ImageRgba8(image))
+}
+
+fn pixmap_to_rgba(pixmap: &Pixmap) -> Result<RgbaImage, String> {
+    let width = pixmap.width();
+    let height = pixmap.height();
+    let pixels = pixmap.pixels();
+    let mut raw = Vec::with_capacity((width * height * 4) as usize);
+
+    for pixel in pixels {
+        let color = pixel.demultiply();
+        raw.push(color.red());
+        raw.push(color.green());
+        raw.push(color.blue());
+        raw.push(color.alpha());
+    }
+
+    RgbaImage::from_raw(width, height, raw).ok_or_else(|| "Failed to build RGBA image".to_string())
+}
+
+fn print_ferris(image: &DynamicImage, max_width: Option<u32>) -> Result<(u32, u32), String> {
+    let mut config = viuer::Config {
+        use_kitty: !cfg!(windows),
+        use_iterm: !cfg!(windows),
+        ..Default::default()
+    };
+    config.transparent = true;
+    config.premultiplied_alpha = false;
+    config.absolute_offset = false;
+    config.restore_cursor = false;
+    config.width = max_width;
+
+    let (width, height) = viuer::print(image, &config).map_err(|err| err.to_string())?;
+
+    let mut stdout = io::stdout();
+    execute!(stdout, MoveUp(height as u16)).map_err(|err: std::io::Error| err.to_string())?;
+
+    Ok((width, height))
+}
+
+fn print_lines_with_offset(lines: &[String], offset: u16, art_height: u32) -> Result<(), String> {
+    let mut stdout = io::stdout();
+    execute!(stdout, MoveToColumn(0), SavePosition)
+        .map_err(|err: std::io::Error| err.to_string())?;
+
+    for (idx, line) in lines.iter().enumerate() {
+        let row = (idx as u32).min(u16::MAX as u32) as u16;
+        if row == 0 {
+            execute!(stdout, RestorePosition, MoveToColumn(offset))
+                .map_err(|err: std::io::Error| err.to_string())?;
+        } else {
+            execute!(stdout, RestorePosition, MoveDown(row), MoveToColumn(offset))
+                .map_err(|err: std::io::Error| err.to_string())?;
+        }
+        writeln!(stdout, "{line}").map_err(|err: std::io::Error| err.to_string())?;
+    }
+
+    let final_height = art_height.max(lines.len() as u32);
+    let final_height = final_height.min(u16::MAX as u32) as u16;
+    execute!(
+        stdout,
+        RestorePosition,
+        MoveDown(final_height),
+        MoveToColumn(0)
+    )
+    .map_err(|err: std::io::Error| err.to_string())?;
+    writeln!(stdout).map_err(|err: std::io::Error| err.to_string())?;
+    stdout
+        .flush()
+        .map_err(|err: std::io::Error| err.to_string())?;
+    Ok(())
+}
+
 /// Print system information with Ferris art
 fn print_info(info: &SysInfo, args: &Args, theme: &Theme) {
+    let mut lines: Vec<(String, String)> = Vec::new();
+    let (term_cols, _) = terminal_size();
     let art: &[&str] = if args.minimal {
         FERRIS_SMALL
     } else {
         FERRIS_ART
     };
-    let art_width = art.iter().map(|l| l.len()).max().unwrap_or(0);
-
-    // Prepare info lines
-    let mut lines: Vec<(String, String)> = Vec::new();
+    let art_width = if args.no_art {
+        0usize
+    } else {
+        art.iter().map(|l| l.len()).max().unwrap_or(0)
+    };
+    let info_cols = if args.no_art {
+        term_cols as usize
+    } else {
+        term_cols.saturating_sub((art_width + 2) as u16) as usize
+    };
 
     // Title line
     let title = format!("{}@{}", info.username, info.hostname);
@@ -278,7 +370,7 @@ fn print_info(info: &SysInfo, args: &Args, theme: &Theme) {
     ));
 
     // Separator
-    let sep = "─".repeat(title.len());
+    let sep = "─".repeat(title.chars().count());
     lines.push((
         "".to_string(),
         if args.no_color {
@@ -312,15 +404,23 @@ fn print_info(info: &SysInfo, args: &Args, theme: &Theme) {
 
     if !args.minimal {
         // CPU info with cores
-        let cpu_display = if info.cpu.len() > 35 {
-            format!("{}...", &info.cpu[..32])
+        let cpu_suffix = format!(" ({} cores)", info.cpu_cores);
+        let max_cpu_len = info_cols
+            .saturating_sub("CPU: ".len() + cpu_suffix.chars().count())
+            .max(4);
+        let cpu_display = if info.cpu.chars().count() > max_cpu_len {
+            let mut trimmed = info
+                .cpu
+                .chars()
+                .take(max_cpu_len.saturating_sub(3))
+                .collect::<String>();
+            trimmed.push_str("...");
+            trimmed
         } else {
             info.cpu.clone()
         };
-        lines.push((
-            label_color("CPU"),
-            value_color(&format!("{} ({} cores)", cpu_display, info.cpu_cores)),
-        ));
+        let cpu_line = format!("{cpu_display}{cpu_suffix}");
+        lines.push((label_color("CPU"), value_color(&cpu_line)));
 
         // Memory with bar
         let mem_info = format!(
@@ -372,6 +472,44 @@ fn print_info(info: &SysInfo, args: &Args, theme: &Theme) {
         .map(|c| "███".color(*c).to_string())
         .collect();
         lines.push(("".to_string(), bright_palette));
+    }
+
+    let line_strings: Vec<String> = lines
+        .iter()
+        .map(|(label, value)| {
+            if label.is_empty() {
+                value.clone()
+            } else {
+                format!("{label}: {value}")
+            }
+        })
+        .collect();
+
+    let max_info_width = line_strings
+        .iter()
+        .map(|line| line.chars().count())
+        .max()
+        .unwrap_or(0) as u16;
+    let available_width = term_cols.saturating_sub(max_info_width + 2);
+    let max_image_width = if available_width >= MIN_IMAGE_WIDTH {
+        Some(available_width.min(MAX_IMAGE_WIDTH) as u32)
+    } else {
+        None
+    };
+
+    if !args.no_art
+        && !args.minimal
+        && let Some(max_width) = max_image_width
+        && let Ok(image) = render_ferris()
+        && let Ok((width, height)) = print_ferris(&image, Some(max_width))
+    {
+        let offset = width
+            .saturating_add(2)
+            .min(term_cols as u32)
+            .min(u16::MAX as u32) as u16;
+        if print_lines_with_offset(&line_strings, offset, height).is_ok() {
+            return;
+        }
     }
 
     // Print output

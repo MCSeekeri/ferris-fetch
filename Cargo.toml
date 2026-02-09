@@ -10,11 +10,15 @@ categories = ["command-line-utilities", "os"]
 readme = "README.md"
 
 [dependencies]
-sysinfo = "0.32"
-colored = "2.1"
+sysinfo = "0.38"
+colored = "3.1"
 clap = { version = "4.5", features = ["derive"] }
-whoami = "1.5"
-os_info = "3.8"
+whoami = "2.1"
+os_info = "3.14"
+image = { version = "0.25", default-features = false }
+resvg = { version = "0.46", default-features = false, features = ["text"] }
+viuer = "0.11"
+crossterm = "0.29"
 
 [profile.release]
 lto = "fat"
