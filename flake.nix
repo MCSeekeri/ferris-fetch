@@ -63,7 +63,7 @@
 
               inherit nativeBuildInputs;
 
-              postInstall = ''
+              postInstall = pkgs.lib.optionalString (!pkgs.stdenv.isDarwin) ''
                 upx --ultra-brute $out/bin/ferrisfetch
               '';
 
