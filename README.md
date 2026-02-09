@@ -1,11 +1,11 @@
-# ferris-fetch 🦀
+# ferrisfetch 🦀
 
 又一个 [RIIR](https://transitiontech.ca/random/RIIR) 的 neofetch，有可爱的 Ferris。
 
 ## 使用
 
 ```nix
-nix run github:MCSeekeri/ferris-fetch
+nix run github:MCSeekeri/ferrisfetch
 ```
 
 ## 编译
@@ -15,7 +15,7 @@ nix run github:MCSeekeri/ferris-fetch
 ```nix
 nix build
 
-nix build github:MCSeekeri/ferris-fetch#ferris-fetch-windows # 交叉编译 Windows 版本
+nix build github:MCSeekeri/ferrisfetch#ferrisfetch-windows # 交叉编译 Windows 版本
 ```
 
 ## 贡献方式

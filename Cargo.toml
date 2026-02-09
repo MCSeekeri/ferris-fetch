@@ -1,12 +1,11 @@
 [package]
-name = "ferris-fetch"
-version = "0.1.0"
-edition = "2021"
-authors = ["NORMAL-EX <normal-ex@cloud-pe.cn>"]
-description = "🦀 A fast and cute system information tool written in Rust, featuring Ferris the crab!"
+name = "ferrisfetch"
+version = "0.0.1"
+edition = "2024"
+authors = ["MCSeekeri <mcseekeri@outlook.com>"]
+description = "Fast and cute system information tool written in Rust, featuring Ferris the crab!"
 license = "MIT"
-repository = "https://github.com/NORMAL-EX/ferris-fetch"
-keywords = ["system-info", "neofetch", "ferris", "rust", "cli"]
+repository = "https://github.com/MCSeekeri/ferrisfetch"
 categories = ["command-line-utilities", "os"]
 readme = "README.md"
 
@@ -18,7 +17,7 @@ whoami = "1.5"
 os_info = "3.8"
 
 [profile.release]
-lto = true
+lto = "fat"
 codegen-units = 1
 panic = "abort"
 strip = true

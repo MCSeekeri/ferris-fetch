@@ -15,13 +15,13 @@ jobs:
         include:
           - os: ubuntu-latest
             system: x86_64-linux
-            artifact: ferris-fetch-linux-x86_64
+            artifact: ferrisfetch-linux-x86_64
           - os: ubuntu-24.04-arm
             system: aarch64-linux
-            artifact: ferris-fetch-linux-aarch64
+            artifact: ferrisfetch-linux-aarch64
           - os: macos-latest
             system: aarch64-darwin
-            artifact: ferris-fetch-macos-aarch64
+            artifact: ferrisfetch-macos-aarch64
 
     runs-on: ${{ matrix.os }}
 
@@ -39,7 +39,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact }}
-          path: result/bin/ferris-fetch
+          path: result/bin/ferrisfetch
           retention-days: 1
 
   build-windows:
@@ -53,13 +53,13 @@ jobs:
 
       - name: Build Windows binary with Nix cross-compilation
         run: |
-          nix build .#ferris-fetch-windows
+          nix build .#ferrisfetch-windows
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
-          name: ferris-fetch-windows-x86_64
-          path: result/bin/ferris-fetch.exe
+          name: ferrisfetch-windows-x86_64
+          path: result/bin/ferrisfetch.exe
           retention-days: 1
 
   release:

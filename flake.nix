@@ -31,14 +31,15 @@
         nativeBuildInputs = with pkgs; [
           rustToolchain
           pkg-config
+          upx
         ];
 
         packageMeta = with pkgs.lib; {
-          description = "A fast and cute system information tool written in Rust, featuring Ferris the crab!";
-          homepage = "https://github.com/NORMAL-EX/ferris-fetch";
+          description = "Fast and cute system information tool written in Rust, featuring Ferris the crab!";
+          homepage = "https://github.com/MCSeekeri/ferrisfetch";
           license = licenses.mit;
           maintainers = [ ];
-          mainProgram = "ferris-fetch";
+          mainProgram = "ferrisfetch";
         };
 
       in
@@ -51,8 +52,8 @@
           in
           {
             default = pkgs.rustPlatform.buildRustPackage {
-              pname = "ferris-fetch";
-              version = "0.1.0";
+              pname = "ferrisfetch";
+              version = "0.0.1";
 
               src = ./.;
 
@@ -62,12 +63,16 @@
 
               inherit nativeBuildInputs;
 
+              postInstall = ''
+                upx --ultra-brute $out/bin/ferrisfetch
+              '';
+
               meta = packageMeta;
             };
 
-            ferris-fetch-windows = windowsPkgs.rustPlatform.buildRustPackage {
-              pname = "ferris-fetch";
-              version = "0.1.0";
+            ferrisfetch-windows = windowsPkgs.rustPlatform.buildRustPackage {
+              pname = "ferrisfetch";
+              version = "0.0.1";
 
               src = ./.;
 
@@ -75,13 +80,20 @@
                 lockFile = ./Cargo.lock;
               };
 
-              nativeBuildInputs = with pkgs; [ pkg-config ];
+              nativeBuildInputs = with pkgs; [
+                pkg-config
+                upx
+              ];
               buildInputs = [ ];
               doCheck = false;
 
+              postInstall = ''
+                upx --ultra-brute $out/bin/ferrisfetch.exe
+              '';
+
               meta = packageMeta // {
                 platforms = pkgs.lib.platforms.windows;
-                mainProgram = "ferris-fetch.exe";
+                mainProgram = "ferrisfetch.exe";
               };
             };
           };
@@ -92,6 +104,8 @@
             ++ (with pkgs; [
               cargo-watch
               rust-analyzer
+              upx
+              rustup
               (treefmt-nix.lib.mkWrapper pkgs ./treefmt.nix)
             ]);
 
@@ -100,7 +114,7 @@
 
         apps.default = {
           type = "app";
-          program = "${self.packages.${system}.default}/bin/ferris-fetch";
+          program = "${self.packages.${system}.default}/bin/ferrisfetch";
         };
       }
     );
