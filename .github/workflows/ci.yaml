@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            system: x86_64-linux
+            artifact: ferrisfetch-linux-x86_64
+          - os: ubuntu-24.04-arm
+            system: aarch64-linux
+            artifact: ferrisfetch-linux-aarch64
+          - os: macos-latest
+            system: aarch64-darwin
+            artifact: ferrisfetch-macos-aarch64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build with Nix
+        run: |
+          nix build .#default
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.artifact }}
+          path: result/bin/ferrisfetch
+          retention-days: 1
+
+  build-windows:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Windows binary with Nix cross-compilation
+        run: |
+          nix build .#ferrisfetch-windows
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ferrisfetch-windows-x86_64
+          path: result/bin/ferrisfetch.exe
+          retention-days: 1
+
+  release:
+    needs: [build, build-windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
